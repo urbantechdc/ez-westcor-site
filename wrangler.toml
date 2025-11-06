@@ -1,11 +1,11 @@
 # Global configuration
 name = "ez-westcor"
-main = ""
+main = ".svelte-kit/cloudflare/_worker.js"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
-# account_id = "YOUR_ACCOUNT_ID" # Replace with your Cloudflare account ID
+account_id = "002eeeed45cd3092f9850997d62be37b" # Your Cloudflare account ID
 
-# Assets configuration for SvelteKit (shared across all environments)
+# Assets configuration for SvelteKit
 [assets]
 directory = ".svelte-kit/cloudflare"
 binding = "ASSETS"
@@ -68,10 +68,10 @@ NODE_ENV = "prod"
 # custom_domain = true
 
 # Production D1 Database binding
-# [[env.prod.d1_databases]]
-# binding = "DB"
-# database_name = "your-app-db-prod"
-# database_id = "your-prod-database-id"
+[[env.prod.d1_databases]]
+binding = "DB"
+database_name = "ez-westcor-db-prod"
+database_id = "df3a69b0-140d-496e-b658-47f67e7e9816"
 
 # Production R2 Bucket binding
 # [[env.prod.r2_buckets]]
