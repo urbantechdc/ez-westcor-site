@@ -1,0 +1,84 @@
+# Global configuration
+name = "ez-westcor"
+main = ""
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+# account_id = "YOUR_ACCOUNT_ID" # Replace with your Cloudflare account ID
+
+# Assets configuration for SvelteKit (shared across all environments)
+[assets]
+directory = ".svelte-kit/cloudflare"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+# Default D1 Database binding for local development
+[[d1_databases]]
+binding = "DB"
+database_name = "ez-westcor-db-local"
+database_id = "local"
+
+# ========================================
+# LOCAL DEVELOPMENT ENVIRONMENT
+# ========================================
+[env.local]
+name = "ez-westcor-local"
+[env.local.vars]
+NODE_ENV = "local"
+
+# ========================================
+# REMOTE DEVELOPMENT ENVIRONMENT
+# ========================================
+[env.dev]
+name = "ez-westcor-dev"
+[env.dev.vars]
+NODE_ENV = "dev"
+
+# Development routes (uncomment when you have a domain)
+# [[env.dev.routes]]
+# pattern = "dev.your-domain.com"
+# custom_domain = true
+
+# Development D1 Database binding
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "ez-westcor-db-dev"
+database_id = "38988e97-019c-48ee-a2aa-808ad055bd30"
+
+# Development R2 Bucket binding
+# [[env.dev.r2_buckets]]
+# binding = "BUCKET"
+# bucket_name = "your-app-files-dev"
+
+# Development KV Namespace binding
+# [[env.dev.kv_namespaces]]
+# binding = "KV"
+# id = "your-dev-kv-namespace-id"
+
+# ========================================
+# PRODUCTION ENVIRONMENT
+# ========================================
+[env.prod]
+name = "ez-westcor"
+[env.prod.vars]
+NODE_ENV = "prod"
+
+# Production routes (uncomment when you have a domain)
+# [[env.prod.routes]]
+# pattern = "your-domain.com"
+# custom_domain = true
+
+# Production D1 Database binding
+# [[env.prod.d1_databases]]
+# binding = "DB"
+# database_name = "your-app-db-prod"
+# database_id = "your-prod-database-id"
+
+# Production R2 Bucket binding
+# [[env.prod.r2_buckets]]
+# binding = "BUCKET"
+# bucket_name = "your-app-files-prod"
+
+# Production KV Namespace binding
+# [[env.prod.kv_namespaces]]
+# binding = "KV"
+# id = "your-prod-kv-namespace-id"

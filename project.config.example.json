@@ -1,0 +1,71 @@
+{
+  "project": {
+    "name": "my-project-name",
+    "description": "Project Description",
+    "version": "0.0.1",
+    "build_version": "0.00",
+    "repository": "https://github.com/username/repo",
+    "changelog": {
+      "enabled": false,
+      "github_repo": "username/repo",
+      "base_version": "0"
+    }
+  },
+  "cloudflare": {
+    "account_id": "YOUR_CLOUDFLARE_ACCOUNT_ID",
+    "workers": {
+      "dev_name": "my-project-dev",
+      "prod_name": "my-project",
+      "compatibility_date": "2025-01-01",
+      "compatibility_flags": ["nodejs_compat"]
+    },
+    "routes": {
+      "dev": ["dev.example.com"],
+      "prod": ["example.com", "www.example.com"]
+    },
+    "databases": {
+      "d1": {
+        "dev": {
+          "binding": "DB",
+          "database_name": "my-project-db-dev",
+          "database_id": "dev-database-id-here"
+        },
+        "prod": {
+          "binding": "DB",
+          "database_name": "my-project-db-prod",
+          "database_id": "prod-database-id-here"
+        }
+      }
+    },
+    "storage": {
+      "r2": {
+        "dev": {
+          "binding": "BUCKET",
+          "bucket_name": "my-project-files-dev"
+        },
+        "prod": {
+          "binding": "BUCKET",
+          "bucket_name": "my-project-files-prod"
+        }
+      },
+      "kv": {
+        "dev": {
+          "binding": "KV",
+          "namespace_id": "dev-kv-namespace-id"
+        },
+        "prod": {
+          "binding": "KV",
+          "namespace_id": "prod-kv-namespace-id"
+        }
+      }
+    }
+  },
+  "development": {
+    "port": 5173,
+    "host": "localhost"
+  },
+  "deployment": {
+    "environments": ["dev", "prod"],
+    "auto_minify": true
+  }
+}

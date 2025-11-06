@@ -1,0 +1,43 @@
+node_modules
+
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Local config with sensitive data
+wrangler.toml.local
+project.config.local.json
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Development
+.dev-server.pid
+dev-server.log
+
+# Build artifacts
+public/data/version.json
+src/lib/changelog-data.json
+
+# Development scripts and temporary files
+examine_eol_dates.py
+examine_excel_structure.py
+import_license_data_remote.sql
+scripts/
+~$*.xlsx
+~$*.xls

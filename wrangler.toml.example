@@ -1,0 +1,59 @@
+name = "svelte-app-dev" # Development worker name
+main = ".svelte-kit/cloudflare/_worker.js"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+# account_id = "YOUR_ACCOUNT_ID" # Replace with your Cloudflare account ID
+
+# Assets configuration for SvelteKit
+[assets]
+directory = ".svelte-kit/cloudflare"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+# Development environment (default)
+# Uncomment and update when you have a domain
+# [[routes]]
+# pattern = "your-dev-domain.com"
+# custom_domain = true
+
+# Example D1 Database binding
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "your-db-dev"
+# database_id = "your-database-id"
+
+# Example R2 Bucket binding
+# [[r2_buckets]]
+# binding = "BUCKET"
+# bucket_name = "your-bucket-dev"
+
+# Example KV Namespace binding
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "your-kv-namespace-id"
+
+# Environment variables
+[vars]
+NODE_ENV = "development"
+
+# Production environment
+[env.production]
+name = "svelte-app" # Production worker name
+[env.production.vars]
+NODE_ENV = "production"
+
+# Production routes
+# [[env.production.routes]]
+# pattern = "your-domain.com"
+# custom_domain = true
+
+# Production database
+# [[env.production.d1_databases]]
+# binding = "DB"
+# database_name = "your-db-prod"
+# database_id = "your-prod-database-id"
+
+# Production R2 bucket
+# [[env.production.r2_buckets]]
+# binding = "BUCKET"
+# bucket_name = "your-bucket-prod"

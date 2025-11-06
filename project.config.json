@@ -1,0 +1,71 @@
+{
+  "project": {
+    "name": "ez-westcor-file-search",
+    "description": "EZ-Westcor File Search - Proof of concept for searchable employee file listings",
+    "version": "0.0.1",
+    "build_version": "0.00",
+    "repository": "git@github.com:urbantechdc/ez-westcor-site.git",
+    "changelog": {
+      "enabled": false,
+      "github_repo": "",
+      "base_version": "0"
+    }
+  },
+  "cloudflare": {
+    "account_id": "YOUR_ACCOUNT_ID",
+    "workers": {
+      "dev_name": "ez-westcor-dev",
+      "prod_name": "ez-westcor",
+      "compatibility_date": "2025-01-01",
+      "compatibility_flags": ["nodejs_compat"]
+    },
+    "routes": {
+      "dev": [],
+      "prod": []
+    },
+    "databases": {
+      "d1": {
+        "dev": {
+          "binding": "DB",
+          "database_name": "",
+          "database_id": ""
+        },
+        "prod": {
+          "binding": "DB",
+          "database_name": "",
+          "database_id": ""
+        }
+      }
+    },
+    "storage": {
+      "r2": {
+        "dev": {
+          "binding": "BUCKET",
+          "bucket_name": ""
+        },
+        "prod": {
+          "binding": "BUCKET",
+          "bucket_name": ""
+        }
+      },
+      "kv": {
+        "dev": {
+          "binding": "KV",
+          "namespace_id": ""
+        },
+        "prod": {
+          "binding": "KV",
+          "namespace_id": ""
+        }
+      }
+    }
+  },
+  "development": {
+    "port": 5173,
+    "host": "localhost"
+  },
+  "deployment": {
+    "environments": ["dev", "prod"],
+    "auto_minify": true
+  }
+}

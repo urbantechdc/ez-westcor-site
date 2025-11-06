@@ -1,0 +1,41 @@
+/* Import Bootstrap core */
+@import 'bootstrap/dist/css/bootstrap.min.css';
+
+/* USAF SCARS Program Brand Colors */
+:root {
+  /* USAF Blue primary colors */
+  --bs-primary: #0033a0;
+  --bs-primary-rgb: 0, 51, 160;
+
+  /* Status indicator colors */
+  --bs-success: #28a745;
+  --bs-warning: #ffc107;
+  --bs-danger: #dc3545;
+  --bs-info: #17a2b8;
+
+  /* Government UI colors */
+  --usaf-blue: #0033a0;
+  --usaf-blue-dark: #002d8f;
+  --status-green: #28a745;
+  --status-yellow: #ffc107;
+  --status-orange: #fd7e14;
+  --status-red: #dc3545;
+  --gray-50: #f8f9fa;
+  --gray-100: #e9ecef;
+  --gray-200: #dee2e6;
+  --gray-300: #ced4da;
+  --gray-600: #6c757d;
+  --gray-700: #495057;
+  --gray-900: #212529;
+}
+
+/* Add any global Bootstrap component overrides here */
+/* Example: Customize all cards to have subtle shadows */
+.card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Example: Customize button hover states */
+.btn {
+  transition: all 0.2s ease-in-out;
+}
