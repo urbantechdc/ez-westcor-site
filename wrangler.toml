@@ -17,6 +17,11 @@ binding = "DB"
 database_name = "ez-westcor-db-local"
 database_id = "local"
 
+# Default R2 Bucket binding for local development (uses R2 simulator)
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "ez-westcor-downloads-local"
+
 # ========================================
 # LOCAL DEVELOPMENT ENVIRONMENT
 # ========================================
@@ -45,9 +50,9 @@ database_name = "ez-westcor-db-dev"
 database_id = "38988e97-019c-48ee-a2aa-808ad055bd30"
 
 # Development R2 Bucket binding
-# [[env.dev.r2_buckets]]
-# binding = "BUCKET"
-# bucket_name = "your-app-files-dev"
+[[env.dev.r2_buckets]]
+binding = "BUCKET"
+bucket_name = "ez-westcor-downloads-dev"
 
 # Development KV Namespace binding
 # [[env.dev.kv_namespaces]]
@@ -74,9 +79,9 @@ database_name = "ez-westcor-db-prod"
 database_id = "df3a69b0-140d-496e-b658-47f67e7e9816"
 
 # Production R2 Bucket binding
-# [[env.prod.r2_buckets]]
-# binding = "BUCKET"
-# bucket_name = "your-app-files-prod"
+[[env.prod.r2_buckets]]
+binding = "BUCKET"
+bucket_name = "ez-westcor-downloads-prod"
 
 # Production KV Namespace binding
 # [[env.prod.kv_namespaces]]

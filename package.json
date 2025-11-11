@@ -23,7 +23,9 @@
 		"migrate:list:dev": "wrangler d1 migrations list DB --env dev",
 		"migrate:list:prod": "wrangler d1 migrations list DB --env prod",
 		"db:backup-info": "wrangler d1 time-travel info DB --env prod",
-		"db:reset:local": "rm -rf .wrangler/state/v3/d1"
+		"db:reset:local": "rm -rf .wrangler/state/v3/d1",
+		"setup:r2": "node setup-r2-credentials.js",
+		"test:presigned-upload": "node test-presigned-upload.js"
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "^1.13.3",
@@ -44,6 +46,9 @@
 		"wrangler": "^4.43.0"
 	},
 	"dependencies": {
-		"bootstrap": "^5.3.8"
+		"@aws-sdk/client-s3": "^3.928.0",
+		"@aws-sdk/s3-request-presigner": "^3.928.0",
+		"bootstrap": "^5.3.8",
+		"formdata-node": "^6.0.3"
 	}
 }

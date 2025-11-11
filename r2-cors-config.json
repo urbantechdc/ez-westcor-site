@@ -1,0 +1,29 @@
+{
+  "rules": [
+    {
+      "id": "allow-uploads-from-web-interface",
+      "maxAgeSeconds": 3600,
+      "allowedOrigins": [
+        "https://ez-westcor-dev.urbantechdc.com",
+        "https://ez-westcor-dev.throbbing-smoke-3f62.workers.dev",
+        "http://localhost:5173"
+      ],
+      "allowedMethods": [
+        "GET",
+        "PUT",
+        "POST",
+        "DELETE",
+        "HEAD",
+        "OPTIONS"
+      ],
+      "allowedHeaders": [
+        "*"
+      ],
+      "exposeHeaders": [
+        "ETag",
+        "Content-Length",
+        "Content-Type"
+      ]
+    }
+  ]
+}

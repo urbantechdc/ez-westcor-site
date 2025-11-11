@@ -1,6 +1,7 @@
 <script>
 	import favicon from '$lib/assets/favicon.svg';
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import '../app.css';
 
 	// Import Bootstrap CSS
@@ -11,6 +12,8 @@
 
 	let { children } = $props();
 
+	// Navigation state
+	const currentRoute = $derived($page.url.pathname);
 
 	onMount(async () => {
 		// Template initialization
@@ -34,12 +37,12 @@
 		// For collapse (accordions, navbar toggle):
 		// await import('bootstrap/js/dist/collapse');
 
+		// For navigation tabs:
+		await import('bootstrap/js/dist/tab');
+
 		// Or import everything (larger bundle):
 		// await import('bootstrap');
 	});
-
-
-	// No tabs needed anymore
 </script>
 
 <svelte:head>
@@ -63,6 +66,33 @@
 	</div>
 </div>
 
+<!-- Navigation Tabs -->
+<div class="bg-white border-bottom">
+	<div class="container-fluid">
+		<ul class="nav nav-tabs border-0" role="tablist">
+			<li class="nav-item" role="presentation">
+				<a
+					href="/"
+					class="nav-link {currentRoute === '/' ? 'active' : ''}"
+					role="tab"
+				>
+					<i class="bi bi-search me-2"></i>
+					File Search
+				</a>
+			</li>
+			<li class="nav-item" role="presentation">
+				<a
+					href="/downloads"
+					class="nav-link {currentRoute === '/downloads' ? 'active' : ''}"
+					role="tab"
+				>
+					<i class="bi bi-download me-2"></i>
+					Downloads
+				</a>
+			</li>
+		</ul>
+	</div>
+</div>
 
 <!-- Main Content -->
 <main class="bg-light min-vh-100">
