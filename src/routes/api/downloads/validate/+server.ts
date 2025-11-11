@@ -200,14 +200,15 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 			true, null, downloadCode.file_size
 		);
 
-		// Return download information
+		// Return download information with presigned URL endpoint
 		return json({
 			success: true,
 			message: 'Download code validated successfully',
 			download: {
 				file_name: downloadCode.file_name,
 				file_size: downloadCode.file_size,
-				download_url: `/api/downloads/file/${downloadCode.id}?t=${Date.now()}`
+				download_url: `/api/downloads/presigned/${downloadCode.id}`,
+				download_type: 'presigned'
 			}
 		});
 

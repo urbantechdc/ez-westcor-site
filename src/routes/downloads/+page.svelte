@@ -38,69 +38,129 @@
 			return;
 		}
 
+		console.log('🚀 Starting download process for code:', downloadCode.trim());
+
 		isLoading = true;
 		errorMessage = '';
 		successMessage = '';
 
 		try {
+			console.log('📡 Making validation request...');
+
 			// First validate the code
 			const response = await fetch('/api/downloads/validate', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
 				},
+				credentials: 'include',
 				body: JSON.stringify({ code: downloadCode.trim() })
 			});
 
+			console.log('📨 Validation response status:', response.status);
+			console.log('📨 Validation response headers:', [...response.headers.entries()]);
+
 			if (response.ok) {
+				console.log('✅ Validation response OK, parsing JSON...');
 				const result = await response.json();
+				console.log('📋 Validation result:', result);
+
 				if (result.success && result.download) {
-					// Code is valid, now download the file
+					console.log('🎯 Code is valid, preparing download...');
+
+					// Code is valid, now get presigned URL for direct download
 					const fileName = result.download.file_name;
-					const downloadUrl = result.download.download_url;
+					const presignedEndpoint = result.download.download_url;
 					const fileSize = result.download.file_size;
+					const downloadType = result.download.download_type;
+
+					console.log('📁 File info:', { fileName, presignedEndpoint, fileSize, downloadType });
 
 					try {
-						// Trigger the download
-						const downloadResponse = await fetch(downloadUrl);
+						if (downloadType === 'presigned') {
+							console.log('🔗 Getting presigned URL for direct R2 download...');
 
-						if (downloadResponse.ok) {
-							// Create a blob from the response
-							const blob = await downloadResponse.blob();
+							// Get presigned URL from our endpoint
+							const presignedResponse = await fetch(presignedEndpoint, {
+								credentials: 'include'
+							});
 
-							// Create download link
-							const url = window.URL.createObjectURL(blob);
-							const link = document.createElement('a');
-							link.href = url;
-							link.download = fileName;
-							document.body.appendChild(link);
-							link.click();
-							document.body.removeChild(link);
-							window.URL.revokeObjectURL(url);
+							console.log('🔗 Presigned response status:', presignedResponse.status);
 
-							successMessage = `Successfully downloaded ${fileName} (${formatFileSize(fileSize)})`;
-							downloadCode = '';
+							if (presignedResponse.ok) {
+								const presignedData = await presignedResponse.json();
+								console.log('✅ Presigned URL generated:', presignedData.presignedUrl);
+
+								// Direct download using presigned URL (no memory usage)
+								console.log('🚀 Starting direct R2 download...');
+								window.open(presignedData.presignedUrl, '_blank');
+
+								console.log('🎉 Download initiated successfully!');
+								successMessage = `Download started for ${fileName} (${formatFileSize(fileSize)}) - Check your downloads folder`;
+								downloadCode = '';
+							} else {
+								console.error('❌ Presigned URL generation failed:', presignedResponse.status);
+								const errorText = await presignedResponse.text();
+								console.error('❌ Presigned error response:', errorText);
+								errorMessage = 'Failed to generate download link. Please try again.';
+							}
 						} else {
-							errorMessage = 'Failed to download file. Please try again.';
+							// Fallback to old streaming method for smaller files
+							console.log('⬇️ Using streaming download (fallback)...');
+
+							const downloadResponse = await fetch(presignedEndpoint, {
+								credentials: 'include'
+							});
+
+							if (downloadResponse.ok) {
+								const blob = await downloadResponse.blob();
+
+								// Create download link
+								const url = window.URL.createObjectURL(blob);
+								const link = document.createElement('a');
+								link.href = url;
+								link.download = fileName;
+								document.body.appendChild(link);
+								link.click();
+								document.body.removeChild(link);
+								window.URL.revokeObjectURL(url);
+
+								successMessage = `Successfully downloaded ${fileName} (${formatFileSize(fileSize)})`;
+								downloadCode = '';
+							} else {
+								errorMessage = 'Failed to download file. Please try again.';
+							}
 						}
 					} catch (downloadError) {
-						console.error('Download error:', downloadError);
+						console.error('💥 Download error:', downloadError);
 						errorMessage = 'Error downloading file. Please try again.';
 					}
 				} else {
+					console.error('❌ Validation failed:', result);
 					errorMessage = result.message || 'Invalid download code';
 				}
 			} else {
-				const errorData = await response.json();
-				errorMessage = errorData.message || 'Download validation failed';
+				console.error('❌ Validation request failed with status:', response.status);
+				try {
+					const errorData = await response.json();
+					console.error('❌ Validation error response:', errorData);
+					errorMessage = errorData.message || 'Download validation failed';
+				} catch (parseError) {
+					console.error('💥 Failed to parse error response:', parseError);
+					const errorText = await response.text();
+					console.error('❌ Raw error response:', errorText);
+					errorMessage = 'Download validation failed';
+				}
 			}
 		} catch (error) {
+			console.error('💥 Network/Fetch error:', error);
 			errorMessage = 'Network error. Please try again.';
-			console.error('Download error:', error);
 		} finally {
+			console.log('🏁 Download process finished, cleaning up...');
 			isLoading = false;
 			// Refresh logs after any download attempt
 			await loadDownloadLogs();
+			console.log('📊 Logs refreshed');
 		}
 	}
 
@@ -132,7 +192,9 @@
 	// Load download logs
 	async function loadDownloadLogs() {
 		try {
-			const response = await fetch('/api/downloads/logs');
+			const response = await fetch('/api/downloads/logs', {
+				credentials: 'include'
+			});
 			if (response.ok) {
 				const data = await response.json();
 				downloadLogs = data.logs || [];
@@ -145,7 +207,9 @@
 	// Check if current user is admin
 	async function checkAdminStatus() {
 		try {
-			const response = await fetch('/api/auth/user');
+			const response = await fetch('/api/auth/user', {
+				credentials: 'include'
+			});
 			if (response.ok) {
 				const data = await response.json();
 				isAdmin = data.email === 'matt@easyharvest.ai';
@@ -162,7 +226,9 @@
 
 		isLoadingFiles = true;
 		try {
-			const response = await fetch('/api/downloads/admin/files');
+			const response = await fetch('/api/downloads/admin/files', {
+				credentials: 'include'
+			});
 			if (response.ok) {
 				const data = await response.json();
 				existingFiles = data.files || [];
@@ -214,6 +280,7 @@
 						headers: {
 							'Content-Type': 'application/json'
 						},
+						credentials: 'include',
 						body: JSON.stringify({
 							fileName: selectedFile.name,
 							contentType: selectedFile.type || 'application/octet-stream',
@@ -253,6 +320,7 @@
 						headers: {
 							'Content-Type': 'application/json'
 						},
+						credentials: 'include',
 						body: JSON.stringify({
 							fileKey: presignedData.fileKey,
 							recipientEmail: selectedRecipient.trim(),
@@ -276,6 +344,7 @@
 
 					const response = await fetch('/api/downloads/admin/upload', {
 						method: 'POST',
+						credentials: 'include',
 						body: formData
 					});
 
@@ -294,6 +363,7 @@
 					headers: {
 						'Content-Type': 'application/json'
 					},
+					credentials: 'include',
 					body: JSON.stringify({
 						fileKey: selectedExistingFile,
 						recipientEmail: selectedRecipient.trim(),
@@ -338,7 +408,8 @@
 
 		try {
 			const response = await fetch(`/api/downloads/admin/delete-log/${logId}`, {
-				method: 'DELETE'
+				method: 'DELETE',
+				credentials: 'include'
 			});
 
 			if (response.ok) {
