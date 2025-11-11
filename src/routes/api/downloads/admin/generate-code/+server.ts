@@ -1,6 +1,8 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import crypto from 'crypto';
+import { S3Client } from '@aws-sdk/client-s3';
+import { HeadObjectCommand } from '@aws-sdk/client-s3';
 
 // Get user email from Cloudflare Zero Trust headers
 function getUserEmail(request: Request): string | null {
@@ -71,14 +73,23 @@ async function logAdminAction(
 export const POST: RequestHandler = async ({ request, platform }) => {
 	try {
 		const db = platform?.env?.DB;
-		const bucket = platform?.env?.BUCKET;
 
 		if (!db) {
 			throw error(500, 'Database not available');
 		}
 
-		if (!bucket) {
-			throw error(500, 'File storage not available');
+		// Get R2 credentials from environment variables
+		const accessKeyId = platform?.env?.R2_ACCESS_KEY_ID;
+		const secretAccessKey = platform?.env?.R2_SECRET_ACCESS_KEY;
+		const accountId = platform?.env?.CLOUDFLARE_ACCOUNT_ID || '002eeeed45cd3092f9850997d62be37b';
+
+		// Get bucket name based on environment
+		const nodeEnv = platform?.env?.NODE_ENV || 'dev';
+		const bucketName = nodeEnv === 'prod' ? 'ez-westcor-downloads-prod' : 'ez-westcor-downloads-dev';
+
+		if (!accessKeyId || !secretAccessKey) {
+			console.error('R2 credentials missing. Required: R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY');
+			throw error(500, 'R2 credentials not configured');
 		}
 
 		const userEmail = getUserEmail(request);
@@ -101,9 +112,26 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 			throw error(400, 'File key and recipient email are required');
 		}
 
+		// Create S3 client for R2
+		const s3Client = new S3Client({
+			region: 'auto',
+			endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+			credentials: {
+				accessKeyId,
+				secretAccessKey,
+			},
+		});
+
 		// Verify file exists in R2
-		const fileInfo = await bucket.head(fileKey);
-		if (!fileInfo) {
+		let fileInfo;
+		try {
+			const headCommand = new HeadObjectCommand({
+				Bucket: bucketName,
+				Key: fileKey,
+			});
+			fileInfo = await s3Client.send(headCommand);
+		} catch (err) {
+			console.error('File not found in R2:', err);
 			throw error(404, 'File not found in storage');
 		}
 
@@ -115,6 +143,7 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 
 		// Store download code in database
 		const notes = description ? description : null;
+		const fileSize = fileInfo.ContentLength || 0;
 		const result = await db.prepare(`
 			INSERT INTO download_codes (
 				code, file_name, file_key, file_size, recipient_email, notes,
@@ -122,7 +151,7 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 				download_count, is_used, created_at
 			) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 1, 0, false, CURRENT_TIMESTAMP)
 		`).bind(
-			downloadCode, fileName, fileKey, fileInfo.size,
+			downloadCode, fileName, fileKey, fileSize,
 			recipientEmail.trim(), notes, userEmail
 		).run();
 
@@ -136,7 +165,7 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 			success: true,
 			code: downloadCode,
 			file_name: fileName,
-			file_size: fileInfo.size,
+			file_size: fileSize,
 			recipient: recipientEmail,
 			message: 'Download code generated successfully'
 		});

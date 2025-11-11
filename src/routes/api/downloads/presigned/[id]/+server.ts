@@ -162,7 +162,10 @@ export const GET: RequestHandler = async ({ params, request, platform, url }) =>
 		const accessKeyId = platform?.env?.R2_ACCESS_KEY_ID;
 		const secretAccessKey = platform?.env?.R2_SECRET_ACCESS_KEY;
 		const accountId = platform?.env?.CLOUDFLARE_ACCOUNT_ID || '002eeeed45cd3092f9850997d62be37b';
-		const bucketName = platform?.env?.R2_BUCKET_NAME || 'ez-westcor-downloads-dev';
+
+		// Get bucket name based on environment
+		const nodeEnv = platform?.env?.NODE_ENV || 'dev';
+		const bucketName = nodeEnv === 'prod' ? 'ez-westcor-downloads-prod' : 'ez-westcor-downloads-dev';
 
 		if (!accessKeyId || !secretAccessKey) {
 			console.error('R2 credentials missing. Required: R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY');

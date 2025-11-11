@@ -28,7 +28,10 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 		// Get credentials from environment
 		const apiToken = platform?.env?.R2_API_TOKEN;
 		const accountId = platform?.env?.CLOUDFLARE_ACCOUNT_ID || '002eeeed45cd3092f9850997d62be37b';
-		const bucketName = platform?.env?.R2_BUCKET_NAME || 'ez-westcor-downloads-dev';
+
+		// Get bucket name based on environment
+		const nodeEnv = platform?.env?.NODE_ENV || 'dev';
+		const bucketName = nodeEnv === 'prod' ? 'ez-westcor-downloads-prod' : 'ez-westcor-downloads-dev';
 
 		if (!apiToken) {
 			console.error('R2 API token missing. Required: R2_API_TOKEN');

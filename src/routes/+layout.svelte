@@ -15,9 +15,36 @@
 	// Navigation state
 	const currentRoute = $derived($page.url.pathname);
 
+	// User state
+	let user = $state({
+		authenticated: false,
+		email: null,
+		isAdmin: false,
+		loading: true
+	});
+
+	// Fetch user information
+	async function fetchUser() {
+		try {
+			const response = await fetch('/api/auth/user');
+			if (response.ok) {
+				const userData = await response.json();
+				user = { ...userData, loading: false };
+			} else {
+				user = { authenticated: false, email: null, isAdmin: false, loading: false };
+			}
+		} catch (error) {
+			console.error('Failed to fetch user:', error);
+			user = { authenticated: false, email: null, isAdmin: false, loading: false };
+		}
+	}
+
 	onMount(async () => {
 		// Template initialization
 		console.log('SvelteKit + Cloudflare Workers Template loaded');
+
+		// Fetch user information
+		await fetchUser();
 
 		// Dynamically import Bootstrap JS (tree-shakeable)
 		// Only import what you need - uncomment as needed:
@@ -61,6 +88,31 @@
 					<h1 class="h4 mb-0 fw-bold text-usaf-blue">EZ-Westcor File Search</h1>
 					<small class="text-muted">Employee File Discovery & Preview System</small>
 				</div>
+			</div>
+
+			<!-- User Display -->
+			<div class="d-flex align-items-center gap-2">
+				{#if user.loading}
+					<div class="spinner-border spinner-border-sm text-primary" role="status">
+						<span class="visually-hidden">Loading...</span>
+					</div>
+				{:else if user.authenticated}
+					<div class="d-flex align-items-center gap-2">
+						<div class="text-end">
+							<div class="fw-semibold text-usaf-blue small">{user.email}</div>
+							{#if user.isAdmin}
+								<div class="badge bg-success text-white small">Admin</div>
+							{:else}
+								<div class="badge bg-secondary text-white small">User</div>
+							{/if}
+						</div>
+						<div class="bg-usaf-blue text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+							<i class="bi bi-person"></i>
+						</div>
+					</div>
+				{:else}
+					<div class="text-muted small">Not authenticated</div>
+				{/if}
 			</div>
 		</div>
 	</div>
