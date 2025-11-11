@@ -22,24 +22,63 @@ function getUserEmail(request: Request): string | null {
 }
 
 // Get user info for logging
-function getUserInfo(request: Request) {
-	const cfIPCountry = request.headers.get('cf-ipcountry');
-	const cfIPCity = request.headers.get('cf-ipcity');
-	const cfIPRegion = request.headers.get('cf-region');
+function getUserInfo(request: Request, cf: any) {
+	// Get IP from headers
 	const cfConnectingIP = request.headers.get('cf-connecting-ip');
 	const xForwardedFor = request.headers.get('x-forwarded-for');
-
 	const ip = cfConnectingIP || xForwardedFor || 'unknown';
-	const location = cfIPCountry && cfIPCity
-		? `${cfIPCity}, ${cfIPRegion || cfIPCountry}`
-		: cfIPCountry || 'Unknown';
+
+	// Get location data from Cloudflare cf object (more reliable than headers)
+	const country = cf?.country || request.headers.get('cf-ipcountry');
+	const city = cf?.city || request.headers.get('cf-ipcity');
+	const region = cf?.region || request.headers.get('cf-region');
+	const regionCode = cf?.regionCode || request.headers.get('cf-region-code');
+	const postalCode = cf?.postalCode || request.headers.get('cf-postal-code');
+	const latitude = cf?.latitude || request.headers.get('cf-latitude');
+	const longitude = cf?.longitude || request.headers.get('cf-longitude');
+
+	// Build more granular location string
+	let location = 'Unknown';
+	if (city && region && country) {
+		// Best case: City, State, Country
+		location = `${city}, ${region}, ${country}`;
+	} else if (city && regionCode && country) {
+		// City, State Code, Country
+		location = `${city}, ${regionCode}, ${country}`;
+	} else if (city && country) {
+		// City and country
+		location = `${city}, ${country}`;
+	} else if (region && country) {
+		// State/Region and country
+		location = `${region}, ${country}`;
+	} else if (country) {
+		// Just country - convert country codes to readable names
+		const countryNames = {
+			'US': 'United States',
+			'CA': 'Canada',
+			'GB': 'United Kingdom',
+			'AU': 'Australia',
+			'DE': 'Germany',
+			'FR': 'France',
+			'IN': 'India',
+			'JP': 'Japan',
+			'CN': 'China',
+			'BR': 'Brazil',
+			'MX': 'Mexico'
+		};
+		location = countryNames[country] || country;
+	}
 
 	return {
 		ip_address: ip,
 		location,
-		country: cfIPCountry,
-		city: cfIPCity,
-		region: cfIPRegion
+		country,
+		city,
+		region,
+		regionCode,
+		postal_code: postalCode,
+		latitude,
+		longitude
 	};
 }
 
@@ -92,7 +131,7 @@ export const GET: RequestHandler = async ({ params, request, platform, url }) =>
 
 		const userEmail = getUserEmail(request);
 		const userAgent = request.headers.get('user-agent');
-		const userInfo = getUserInfo(request);
+		const userInfo = getUserInfo(request, request.cf);
 
 		// Look up the download code
 		const downloadCode = await db.prepare(`
@@ -155,12 +194,6 @@ export const GET: RequestHandler = async ({ params, request, platform, url }) =>
 
 		// Generate presigned URL (valid for 1 hour)
 		const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-
-		// Log successful presigned URL generation
-		await logPresignedDownload(
-			db, codeId, userEmail, userAgent, userInfo,
-			true, 'Presigned download URL generated', downloadCode.file_size
-		);
 
 		return json({
 			success: true,
