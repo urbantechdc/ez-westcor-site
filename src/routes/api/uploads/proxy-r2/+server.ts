@@ -1,7 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { S3Client } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 
 // Get user email from Cloudflare Zero Trust headers
@@ -11,7 +10,7 @@ function getUserEmail(request: Request): string | null {
 	return cfAccess || xAuth || null;
 }
 
-export const POST: RequestHandler = async ({ request, platform }) => {
+export const PUT: RequestHandler = async ({ request, platform, url }) => {
 	try {
 		const userEmail = getUserEmail(request);
 
@@ -20,13 +19,17 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 			throw error(403, 'Access denied. Admin privileges required.');
 		}
 
-		// Parse request body
-		const body = await request.json();
-		const { fileName, contentType, fileSize } = body;
+		// Get file metadata from query parameters
+		const fileKey = url.searchParams.get('key');
+		const fileName = url.searchParams.get('fileName');
+		const contentType = request.headers.get('content-type') || 'application/octet-stream';
+		const contentLength = request.headers.get('content-length');
 
-		if (!fileName) {
-			throw error(400, 'fileName is required');
+		if (!fileKey || !fileName) {
+			throw error(400, 'key and fileName query parameters are required');
 		}
+
+		console.log(`🚀 Worker proxy upload starting: ${fileName} (${contentLength} bytes)`);
 
 		// Get R2 credentials from environment variables
 		const accessKeyId = platform?.env?.R2_ACCESS_KEY_ID;
@@ -39,13 +42,6 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 			throw error(500, 'R2 credentials not configured');
 		}
 
-		// Generate unique file key to prevent conflicts
-		const timestamp = Date.now();
-		const uuid = crypto.randomUUID();
-		const fileKey = `${timestamp}-${uuid}-${fileName}`;
-
-		console.log(`Generating presigned upload URL for: ${fileKey}`);
-
 		// Create S3 client for R2
 		const s3Client = new S3Client({
 			region: 'auto',
@@ -56,52 +52,30 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 			},
 		});
 
-		// Create the PutObjectCommand
+		// Use request.body directly for streaming (avoids loading into memory)
 		const command = new PutObjectCommand({
 			Bucket: bucketName,
 			Key: fileKey,
-			ContentType: contentType || 'application/octet-stream',
-			...(fileSize && { ContentLength: parseInt(fileSize) })
+			Body: request.body,
+			ContentType: contentType,
+			...(contentLength && { ContentLength: parseInt(contentLength) })
 		});
 
-		// Generate presigned URL (valid for 1 hour)
-		const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-
-		// Also provide a worker proxy fallback URL for CORS issues
-		const workerProxyUrl = `/api/uploads/proxy-r2?key=${encodeURIComponent(fileKey)}&fileName=${encodeURIComponent(fileName)}`;
+		console.log(`📤 Uploading to R2: ${bucketName}/${fileKey}`);
+		const result = await s3Client.send(command);
+		console.log(`✅ Upload successful, ETag: ${result.ETag}`);
 
 		return json({
 			success: true,
-			presignedUrl: presignedUrl,
-			workerProxyUrl: workerProxyUrl,
+			message: 'File uploaded successfully to R2 via worker proxy',
 			fileKey: fileKey,
 			fileName: fileName,
-			expiresIn: 3600,
-			message: 'Upload URLs generated successfully',
-			instructions: {
-				primary: {
-					method: 'PUT',
-					url: presignedUrl,
-					note: 'Direct R2 upload (faster, but requires CORS configuration)',
-					headers: {
-						'Content-Type': contentType || 'application/octet-stream',
-						...(fileSize && { 'Content-Length': fileSize })
-					}
-				},
-				fallback: {
-					method: 'PUT',
-					url: workerProxyUrl,
-					note: 'Worker proxy upload (works without CORS, slightly slower)',
-					headers: {
-						'Content-Type': contentType || 'application/octet-stream'
-					}
-				},
-				maxSize: '5TB (R2 limit per object)'
-			}
+			etag: result.ETag,
+			uploadMethod: 'worker-proxy'
 		});
 
 	} catch (err) {
-		console.error('Presigned URL generation error:', err);
+		console.error('❌ Proxy upload error:', err);
 
 		if (err instanceof Response) {
 			throw err;
@@ -109,20 +83,20 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 
 		return json({
 			success: false,
-			message: 'Internal server error while generating presigned URL',
+			message: 'Error uploading file through worker proxy',
 			error: err instanceof Error ? err.message : 'Unknown error'
 		}, { status: 500 });
 	}
 };
 
-// Handle CORS
+// Handle CORS for preflight
 export const OPTIONS: RequestHandler = async () => {
 	return new Response(null, {
 		status: 200,
 		headers: {
 			'Access-Control-Allow-Origin': '*',
-			'Access-Control-Allow-Methods': 'POST, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type',
+			'Access-Control-Allow-Methods': 'PUT, OPTIONS',
+			'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 		},
 	});
 };

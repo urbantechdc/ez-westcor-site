@@ -12,6 +12,10 @@ node_modules
 .DS_Store
 Thumbs.db
 
+# extra files
+*.zip
+*.txt
+
 # Env
 .env
 .env.*

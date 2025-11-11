@@ -295,21 +295,70 @@
 
 					const presignedData = await presignedResponse.json();
 
-					// Step 2: Upload directly to R2 using presigned URL
+					// Step 2: Upload to R2 (try direct first, fallback to worker proxy)
 					uploadSuccess = `🚀 Uploading ${fileSizeMB.toFixed(1)}MB file directly to R2...`;
 
-					const uploadResponse = await fetch(presignedData.presignedUrl, {
-						method: 'PUT',
-						headers: {
-							'Content-Type': selectedFile.type || 'application/octet-stream',
-							'Content-Length': selectedFile.size.toString()
-						},
-						body: selectedFile
-					});
+					let uploadResponse;
+					let uploadMethod = 'direct';
 
-					if (!uploadResponse.ok) {
-						const errorText = await uploadResponse.text();
-						throw new Error(`Presigned upload failed: ${uploadResponse.status} ${uploadResponse.statusText} - ${errorText}`);
+					// Start with worker proxy method for large files to ensure reliability
+					console.log('🚀 Using worker proxy for large file upload...');
+					uploadSuccess = `⚡ Using secure worker proxy for upload...`;
+					uploadMethod = 'proxy';
+
+					try {
+						if (presignedData.workerProxyUrl) {
+							console.log('📍 Worker proxy URL:', presignedData.workerProxyUrl);
+
+							uploadResponse = await fetch(presignedData.workerProxyUrl, {
+								method: 'PUT',
+								headers: {
+									'Content-Type': selectedFile.type || 'application/octet-stream'
+								},
+								credentials: 'include',
+								body: selectedFile
+							});
+
+							console.log('📡 Proxy upload response:', uploadResponse.status, uploadResponse.statusText);
+
+							if (!uploadResponse.ok) {
+								const errorText = await uploadResponse.text();
+								console.error('❌ Proxy upload failed:', errorText);
+								throw new Error(`Worker proxy upload failed: ${uploadResponse.status} ${uploadResponse.statusText} - ${errorText}`);
+							}
+
+							console.log('✅ Proxy upload successful!');
+						} else {
+							throw new Error('No worker proxy URL available');
+						}
+					} catch (proxyError) {
+						console.error('💥 Worker proxy failed, trying direct upload as fallback:', proxyError);
+						uploadSuccess = `⚠️ Worker proxy failed, trying direct upload...`;
+						uploadMethod = 'direct';
+
+						try {
+							// Fallback to direct upload
+							console.log('🚀 Attempting direct R2 upload to:', presignedData.presignedUrl);
+							uploadResponse = await fetch(presignedData.presignedUrl, {
+								method: 'PUT',
+								headers: {
+									'Content-Type': selectedFile.type || 'application/octet-stream',
+									'Content-Length': selectedFile.size.toString()
+								},
+								body: selectedFile
+							});
+
+							console.log('📡 Direct upload response:', uploadResponse.status, uploadResponse.statusText);
+
+							if (!uploadResponse.ok) {
+								throw new Error(`Direct upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+							}
+
+							console.log('✅ Direct upload successful!');
+						} catch (directUploadError) {
+							console.error('💥 Both proxy and direct upload failed:', directUploadError);
+							throw new Error(`Upload failed: ${proxyError.message}. Direct fallback also failed: ${directUploadError.message}`);
+						}
 					}
 
 					// Step 3: Generate download code for uploaded file
@@ -330,7 +379,8 @@
 
 					if (codeResponse.ok) {
 						const result = await codeResponse.json();
-						uploadSuccess = `🎉 Large file uploaded successfully! Download code: ${result.code}`;
+						const methodText = uploadMethod === 'direct' ? '(direct R2)' : '(worker proxy)';
+						uploadSuccess = `🎉 Large file uploaded successfully ${methodText}! Download code: ${result.code}`;
 					} else {
 						const errorData = await codeResponse.json();
 						throw new Error(errorData.message || 'Code generation failed');
