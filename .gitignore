@@ -16,6 +16,18 @@ Thumbs.db
 *.zip
 *.txt
 
+# Large files and test data
+archive.zip
+*.tar.gz
+*.7z
+*.bz2
+*.rar
+*.iso
+*.dmg
+large-*
+test-data/
+*.sql.gz
+
 # Env
 .env
 .env.*

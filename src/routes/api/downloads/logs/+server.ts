@@ -20,11 +20,13 @@ function parseLocation(locationData: string | null): string {
 
 	try {
 		const data = JSON.parse(locationData);
-		console.log('Location data:', data); // Debug log
 
 		// Try to build the most specific location possible
-		if (data.city && data.region) {
-			// Best case: City, State/Region
+		if (data.city && data.region && data.country) {
+			// Best case: City, State, Country
+			return `${data.city}, ${data.region}, ${data.country}`;
+		} else if (data.city && data.region) {
+			// City and State/Region
 			return `${data.city}, ${data.region}`;
 		} else if (data.city && data.country) {
 			// City with country
@@ -32,8 +34,11 @@ function parseLocation(locationData: string | null): string {
 		} else if (data.region && data.country) {
 			// State/Region with country
 			return `${data.region}, ${data.country}`;
+		} else if (data.location) {
+			// Use pre-built location string if available (from the new format)
+			return data.location;
 		} else if (data.location_string) {
-			// Use pre-built location string if available
+			// Use old pre-built location string if available
 			return data.location_string;
 		} else if (data.city) {
 			// Just city
@@ -42,8 +47,21 @@ function parseLocation(locationData: string | null): string {
 			// Just region/state
 			return data.region;
 		} else if (data.country) {
-			// Just country
-			return data.country;
+			// Just country - convert country codes to readable names
+			const countryNames = {
+				'US': 'United States',
+				'CA': 'Canada',
+				'GB': 'United Kingdom',
+				'AU': 'Australia',
+				'DE': 'Germany',
+				'FR': 'France',
+				'IN': 'India',
+				'JP': 'Japan',
+				'CN': 'China',
+				'BR': 'Brazil',
+				'MX': 'Mexico'
+			};
+			return countryNames[data.country] || data.country;
 		}
 
 		return 'Unknown';

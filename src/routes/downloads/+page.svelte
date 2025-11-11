@@ -176,17 +176,38 @@
 	// Helper function to format timestamp in Eastern timezone
 	function formatTimestamp(timestamp) {
 		if (!timestamp) return 'Unknown';
-		const date = new Date(timestamp);
-		return date.toLocaleString('en-US', {
+
+		// Ensure we have a proper date object
+		let date;
+		if (typeof timestamp === 'string') {
+			// Handle different timestamp formats
+			if (timestamp.includes('T')) {
+				date = new Date(timestamp);
+			} else {
+				// Handle YYYY-MM-DD HH:MM:SS format from SQLite
+				date = new Date(timestamp.replace(' ', 'T') + 'Z'); // Add Z to indicate UTC
+			}
+		} else {
+			date = new Date(timestamp);
+		}
+
+		// Format in Eastern Time
+		const options = {
 			timeZone: 'America/New_York',
 			year: 'numeric',
 			month: '2-digit',
 			day: '2-digit',
 			hour: '2-digit',
 			minute: '2-digit',
-			second: '2-digit',
 			hour12: true
-		});
+		};
+
+		try {
+			return date.toLocaleString('en-US', options);
+		} catch (error) {
+			console.error('Error formatting timestamp:', error, timestamp);
+			return timestamp.toString();
+		}
 	}
 
 	// Load download logs
