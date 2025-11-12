@@ -46,7 +46,7 @@
 		filesLoading = true;
 
 		try {
-			const response = await fetch(`/api/employee/${employee.id}/files`);
+			const response = await fetch(`/api/employee/${employee.realId}/files`);
 			const result = await response.json();
 
 			if (result.success) {

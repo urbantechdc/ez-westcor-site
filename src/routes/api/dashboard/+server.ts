@@ -1,7 +1,15 @@
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
+import { applyPrivacyFilterToArray } from '$lib/server/privacy.js';
 
-export const GET: RequestHandler = async ({ platform }) => {
+// Get user email from Cloudflare Zero Trust headers
+function getUserEmail(request: Request): string | null {
+	const cfAccess = request.headers.get('cf-access-authenticated-user-email');
+	const xAuth = request.headers.get('x-authenticated-user-email');
+	return cfAccess || xAuth || null;
+}
+
+export const GET: RequestHandler = async ({ request, platform }) => {
 	try {
 		const db = platform?.env?.DB;
 		if (!db) {
@@ -24,7 +32,8 @@ export const GET: RequestHandler = async ({ platform }) => {
 
 		// Transform employee data for the frontend
 		const employees = employeeSummary.results.map((emp, index) => ({
-			id: emp.employee_id,
+			realId: emp.employee_id,  // Keep real ID for API calls
+			id: emp.employee_id,      // Will be obfuscated for display
 			name: emp.full_name,
 			fileCount: emp.file_count || 0,
 			contentFiles: emp.content_file_count || 0,
@@ -99,13 +108,33 @@ export const GET: RequestHandler = async ({ platform }) => {
 			config[item.key] = item.value;
 		});
 
+		// Get user email for privacy filtering
+		const userEmail = getUserEmail(request);
+
+		// Apply privacy filtering to sensitive data
+		const filteredEmployees = applyPrivacyFilterToArray(employees, userEmail, {
+			names: ['name'],
+			employeeIds: ['id']
+		});
+
+		const filteredTopEmployees = applyPrivacyFilterToArray(topEmployees.results, userEmail, {
+			names: ['full_name'],
+			employeeIds: ['employee_id']
+		});
+
+		const filteredRecentActivity = applyPrivacyFilterToArray(recentActivity.results, userEmail, {
+			names: ['full_name'],
+			filenames: ['file_name'],
+			employeeIds: ['employee_id']
+		});
+
 		return json({
 			success: true,
 			data: {
-				employees,
+				employees: filteredEmployees,
 				fileStats: fileStats.results,
-				topEmployees: topEmployees.results,
-				recentActivity: recentActivity.results,
+				topEmployees: filteredTopEmployees,
+				recentActivity: filteredRecentActivity,
 				summary: {
 					totalEmployees,
 					activeEmployees,
@@ -204,18 +233,28 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 		}
 
 		const employees = searchResults.results.map(emp => ({
-			id: emp.employee_id,
+			realId: emp.employee_id,  // Keep real ID for API calls
+			id: emp.employee_id,      // Will be obfuscated for display
 			name: emp.full_name,
 			fileCount: emp.file_count || 0,
 			contentFiles: emp.content_files || 0,
 			status: emp.status
 		}));
 
+		// Get user email for privacy filtering
+		const userEmail = getUserEmail(request);
+
+		// Apply privacy filtering to search results
+		const filteredEmployees = applyPrivacyFilterToArray(employees, userEmail, {
+			names: ['name'],
+			employeeIds: ['id']
+		});
+
 		return json({
 			success: true,
 			data: {
-				employees,
-				totalResults: employees.length,
+				employees: filteredEmployees,
+				totalResults: filteredEmployees.length,
 				query: query || '',
 				filters: filters || {}
 			}

@@ -1,7 +1,15 @@
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
+import { applyPrivacyFilter, applyPrivacyFilterToArray } from '$lib/server/privacy.js';
 
-export const GET: RequestHandler = async ({ platform, params }) => {
+// Get user email from Cloudflare Zero Trust headers
+function getUserEmail(request: Request): string | null {
+	const cfAccess = request.headers.get('cf-access-authenticated-user-email');
+	const xAuth = request.headers.get('x-authenticated-user-email');
+	return cfAccess || xAuth || null;
+}
+
+export const GET: RequestHandler = async ({ request, platform, params }) => {
 	try {
 		const db = platform?.env?.DB;
 		if (!db) {
@@ -47,17 +55,35 @@ export const GET: RequestHandler = async ({ platform, params }) => {
 			ORDER BY ef.file_name ASC
 		`).bind(employeeId).all();
 
+		// Get user email for privacy filtering
+		const userEmail = getUserEmail(request);
+
+		// Apply privacy filtering to employee data
+		const filteredEmployee = applyPrivacyFilter(
+			{
+				id: employee.employee_id,
+				name: employee.full_name
+			},
+			userEmail,
+			{
+				names: ['name'],
+				employeeIds: ['id']
+			}
+		);
+
+		// Apply privacy filtering to files data
+		const filteredFiles = applyPrivacyFilterToArray(files.results, userEmail, {
+			filenames: ['file_name', 'file_path']
+		});
+
 		return json({
 			success: true,
 			data: {
-				employee: {
-					id: employee.employee_id,
-					name: employee.full_name
-				},
-				files: files.results,
+				employee: filteredEmployee,
+				files: filteredFiles,
 				summary: {
-					totalFiles: files.results.length,
-					categories: [...new Set(files.results.map(f => f.category_name).filter(Boolean))]
+					totalFiles: filteredFiles.length,
+					categories: [...new Set(filteredFiles.map(f => f.category_name).filter(Boolean))]
 				}
 			}
 		});
